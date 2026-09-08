@@ -3,97 +3,181 @@ library(dplyr) ## useful for transforming data
 library(stringr) ## needed to find patterns in character strings
 library(lme4) ## glmm package
 library(vegan) ## multidimentional vegetation analysis package
-setwd("C:/Users/trevo/Dropbox/My PC (LAPTOP-GI7LHD15)/Documents/GitHub/Fire-Retartand-Veg-Soils") ## set working directory to the main GitHub folder
+library(here) ## for setting the working directory and reproducibility
+setwd(here()) ## set working directory to the main GitHub folder
 
 #### Reading in Data ####
-cover <- read.csv("./data/FieldData(comm).csv") ## field data on plant cover
-rich <- read.csv("./data/FieldData(rich).csv") ## field data on species richness
+cover25 <- read.csv("./data/comm_2025.csv") ## field data on plant cover for 2025
+cover26 <- read.csv("./data/comm_2026.csv") ## 2026
+rich25 <- read.csv("./data/rich_2025.csv")
+rich26 <- read.csv("./data/rich_2026.csv") ## field data on species richness
 env <- read.csv("./data/ENV_Data.csv") ## environmental data from script 1-Clean Environmental Data.R
+env <- env[complete.cases(env),] ## removing the 1 plot that doesn't exist 
 sp.info <- read.csv("./data/IntroducedStatusKey.csv") ## species information on introduced/native, functional group, etc. 
-soils <- read.csv("./data/CarterFR_analysis.csv")
+# soils25 <- read.csv("./data/CarterFR_analysis.csv") ## will have to deal with soils later
 
 #### cleaning data ####
-## matching the plot names, a bit of inconsistency
-cover$plot <- gsub("_", "", cover$plot)
-rich$plot <- gsub("_", "", rich$plot)
-env$plot <- gsub("_", "", env$plot)
-soils$Field.ID <- gsub("_", "", soils$Field.ID)
+## removing stone canyon from the 2025 data
+cover25 <- cover25[-grep("_", cover25$plot),]
+unique(rich25$plot)
+rich25 <- rich25[-grep("_", rich25$plot),]
+unique(rich25$plot)
 
-soils <- soils[complete.cases(soils),] ## soils is relatively clean already
-soils <- soils[order(soils$Location,soils$Treatment,soils$Burn.Severity),] ## ordering the data 
 
-`%notin%` <- purrr::negate(`%in%`) ## creating a function to negate %in% , makes cleaning easier
-env$plot[env$plot[order(env$plot)] %notin% soils$Field.ID[order(soils$Field.ID)]]
-## this looks correct, MFR05 and SCCON11 were not visited for sampling
+## cleaning the codes
+`%notin%` <- Negate(`%in%`)
 
-env <- env[match(soils$Field.ID, env$plot),] ## correct number of plots
-
-length(unique(sp.info$code)) ## information that is most clean (no duplicates); 231 species
-length(unique(cover$code)) ## 166 species
-length(unique(rich$code)) ## 253 species
-
-unique(cover$code[cover$code %notin% sp.info$code]) ## finding observations not in the sp.info df
-cover <- cover[cover$code != "ROCK" & 
-                 cover$code != "LITTER" & 
-                 cover$code != "LITTER " &
-                 cover$code != "LITTER`" &
-                 cover$code != "SOIL",] ## removing non-species codes
+## 2025
+unique(cover25$code[cover25$code %notin% sp.info$code]) ## finding observations not in the sp.info df
+cover25 <- cover25[cover25$code != "ROCK" & 
+                     cover25$code != "LITTER" & 
+                     cover25$code != "LITTER " &
+                     cover25$code != "LITTER`" &
+                     cover25$code != "SOIL",] ## removing non-species codes
 ## manually fixing spelling errors
-cover$code[cover$code == "ANDGER "] <- "ANDGER"
-cover$code[cover$code == "CAREX"] <- "CAREX SP."
-cover$code[cover$code == "ESCVIR"] <- "ECHVIR" 
-cover$code[cover$code == "UNK 04" | cover$code == "UNK 05" | cover$code == "UNK 14"] <- "UNABLETOID"
-cover$code[cover$code == "BOUSTR"] <- "BOESTR" 
-cover$code[cover$code == "LATALN"] <- "LATLAN" 
-cover$code[cover$code == "POLDEL"] <- "POLDOU" 
-cover$code[cover$code == "CAREX "] <- "CAREX SP."
-cover$code[cover$code == "AQUCER"] <- "AQUCOE"
-cover$code[cover$code == "MEHRAN"] <- "MAHREP"
+cover25$code[cover25$code == "ANDGER "] <- "ANDGER"
+cover25$code[cover25$code == "CAREX"] <- "CAREX SP."
+cover25$code[cover25$code == "ESCVIR"] <- "ECHVIR" 
+cover25$code[cover25$code == "UNK 04" | cover25$code == "UNK 05" | cover25$code == "UNK 14"] <- "UNABLETOID"
+cover25$code[cover25$code == "BOUSTR"] <- "BOESTR" 
+cover25$code[cover25$code == "LATALN"] <- "LATLAN" 
+cover25$code[cover25$code == "POLDEL"] <- "POLDOU" 
+cover25$code[cover25$code == "CAREX "] <- "CAREX SP."
+cover25$code[cover25$code == "AQUCER"] <- "AQUCOE"
+cover25$code[cover25$code == "MEHRAN"] <- "MAHREP"
+cover25 <- cover25[cover25$code != "HIEALB",]  # no clue, removing for now (will look at data on campus)
+cover25 <- cover25[cover25$code != "LONUTA",]  # no clue, removing
+unique(cover25$code[cover25$code %notin% sp.info$code]) ## now the only missing code is the UNABLETOID code, which makes sense
 
-## not sure what these codes were supposed to be so I am removing them
-cover <- cover[cover$code != "HIEALB",]  # no clue, removing for now (will look at data on campus)
-cover <- cover[cover$code != "LONUTA",]  # no clue, removing
-unique(cover$code[cover$code %notin% sp.info$code]) ## now the only missing code is the UNABLETOID code, which makes sense
-length(unique(cover$code)) ## 150 species in the cover data
+## 2026
+unique(cover26$code[cover26$code %notin% sp.info$code]) ## finding observations not in the sp.info df
+sp_vec <- unique(cover26$code[cover26$code %notin% sp.info$code]) ## finding observations not in the sp.info df
+sp_vec ## need to find which plots they are on, verify, and add to sp.info data
+cover26 <- cover26[cover26$code != "LITT" & 
+                     cover26$code != "SOIL" & 
+                     cover26$code != "ROCK" &
+                     cover26$code != "WOOD",] ## removing non-species codes
+cover26$code[cover26$code == "CAREX"] <- "CAREX SP."
+cover26$code[cover26$code == "CREX"] <- "CAREX SP."
+cover26$code[cover26$code == "UNKG1" | cover26$code == "UNKF4"] <- "UNABLETOID"
+cover26$code[cover26$code == "LACCER"] <- "LACSER"
+cover26$code[cover26$code == "CLAPAR"] <- "CLAPER"
+cover26$code[cover26$code == "BROTEX"] <- "BROTEC"
+cover26$code[cover26$code == "CARMIC"] <- "CAMMIC"
+cover26$code[cover26$code == "VIOADU"] <- "VIONUT" ## pretty sure Trevor mis-ID'ed the violet
+cover26$code[cover26$code == "MEISTE"] <- "MAISTE"
+cover26$code[cover26$code == "GARBOR"] <- "GALBOR"
+cover26$code[cover26$code == "PINVIR"] <- "PENVIR"
+cover26$code[cover26$code == "PENVIT"] <- "PENVIR"
+cover26$code[cover26$code == "CERTHA"] <- "VERTHA"
+cover26$code[cover26$code == "SYMALAB"] <- "SYMALB"
+cover26$code[cover26$code == "COLRUB"] <- "COLPAR" ## Not sure if 100% correct, but fairly confident
+cover26$code[cover26$code == "XOLPAR"] <- "COLPAR"
+cover26$code[cover26$code == "HEVVIL"] <- "HETVIL"
+cover26$code[cover26$code == "AQUCER"] <- "AQUCOE"
+cover26$code[cover26$code == "MAHREPP"] <- "MAHREP"
+cover26$code[cover26$code == "PENINT"] <- "PENVIR"
+cover26 <- cover26[cover26$code != "JAMAME",]  # no clue, removing for now (will look at data on campus)
+unique(cover26$code[cover26$code %notin% sp.info$code]) ## now the only missing code is the UNABLETOID code, which makes sense
+
+length(unique(cover25$code)) ## 92 species in 2025 cover data
+length(unique(cover26$code)) ## 95 species in 2026 cover data
 
 ## repeating the process for the species richness df
-unique(rich$code[rich$code %notin% sp.info$code]) ## mostly unknowns as errors
-rich$code[rich$code == "UNK10" | 
-            rich$code == "UNK11" | 
-            rich$code == "UNK 11" | 
-            rich$code == "UNK 09" | 
-            rich$code == "UNK 04" | 
-            rich$code == "UNK 02" | 
-            rich$code == "UNK6" | 
-            rich$code == "UNK13" | 
-            rich$code == "UNK12" | 
-            rich$code == "UNK14" | 
-            rich$code == "UNK15" | 
-            rich$code == "UNK A"] <- "UNABLETOID"
-rich$code[rich$code == "CAREX sp."] <- "CAREX SP."
-rich$code[rich$code == "HUEPAR"] <- "HEUPAR"
-rich$code[rich$code == "ARTDRA "] <- "ARTDRA"
-rich$code[rich$code == "ESCVIR"] <- "ECHVIR"
-rich$code[rich$code == "CIRSIUM SP."] ## not doing anything with the cirsium genus at the moment
-rich$code[rich$code == "RHUARO"] <- "RHUTRI"
-rich$code[rich$code == "OPUPOL "] <- "OPUPOL"
-rich$code[rich$code == "BOUSTR"] <- "BOESTR"
-rich$code[rich$code == "HETHIR"] <- "HETVIL"
-rich <- rich[rich$code != "GILCUD",] ## no clue, removing for now
+unique(rich25$code[rich25$code %notin% sp.info$code]) ## mostly unknowns as errors
+rich25$code[rich25$code == "UNK10" | 
+              rich25$code == "UNK11" | 
+              rich25$code == "UNK 11" | 
+              rich25$code == "UNK 09" | 
+              rich25$code == "UNK 04" | 
+              rich25$code == "UNK 02" | 
+              rich25$code == "UNK6" | 
+              rich25$code == "UNK13" | 
+              rich25$code == "UNK12" | 
+              rich25$code == "UNK14" | 
+              rich25$code == "UNK15" | 
+              rich25$code == "UNK A"] <- "UNABLETOID"
+rich25$code[rich25$code == "CAREX sp."] <- "CAREX SP."
+rich25$code[rich25$code == "HUEPAR"] <- "HEUPAR"
+rich25$code[rich25$code == "ARTDRA "] <- "ARTDRA"
+rich25$code[rich25$code == "ESCVIR"] <- "ECHVIR"
+rich25$code[rich25$code == "CIRSIUM SP."] ## not doing anything with the cirsium genus at the moment
+rich25$code[rich25$code == "RHUARO"] <- "RHUTRI"
+rich25$code[rich25$code == "OPUPOL "] <- "OPUPOL"
+rich25$code[rich25$code == "BOUSTR"] <- "BOESTR"
+rich25$code[rich25$code == "HETHIR"] <- "HETVIL"
+rich25 <- rich25[rich25$code != "GILCUD",] ## no clue, removing for now
+unique(rich25$code[rich25$code %notin% sp.info$code])
 
-unique(rich$code[rich$code %notin% sp.info$code])
-length(unique(rich$code)) ## 233 species
+unique(rich26$code[rich26$code %notin% sp.info$code]) ## mostly unknowns as errors
+rich26$code[rich26$code == "UNKF1" | 
+              rich26$code == "UNKF2" | 
+              rich26$code == "UNKF3" | 
+              rich26$code == "UNKF5" | 
+              rich26$code == "UNKG1" | 
+              rich26$code == "ANTENNARIA" | 
+              rich26$code == "UNKF6"] <- "UNABLETOID"
+rich26$code[rich26$code == "CAREX"] <- "CAREX SP."
+rich26$code[rich26$code == "LACCER"] <- "LACSER"
+rich26$code[rich26$code == "CLAPAR"] <- "CLAPER"
+rich26$code[rich26$code == "CARMIC"] <- "CAMMIC"
+rich26$code[rich26$code == "VIOADU"] <- "VIONUT" ## pretty sure Trevor mis-ID'ed the violet
+rich26$code[rich26$code == "VIOAUD"] <- "VIONUT" ## pretty sure Trevor mis-ID'ed the violet
+rich26$code[rich26$code == "AQUCER"] <- "AQUCOE"
+rich26$code[rich26$code == "COLRUB"] <- "COLPAR" ## Not sure if 100% correct, but fairly confident
+rich26$code[rich26$code == "DPENVIR"] <- "PENVIR"
+rich26$code[rich26$code == "VETHA"] <- "VERTHA"
+rich26$code[rich26$code == "PENINT"] <- "PENVIR"
+rich26$code[rich26$code == "RIBMON"] <- "RIBCER"
+rich26$code[rich26$code == "DRAAUG"] <- "DRAAUR"
+rich26$code[rich26$code == "IPOAGR"] <- "IPOAGG"
+rich26$code[rich26$code == "HETCIL"] <- "HETVIL"
+rich26$code[rich26$code == "PSEMIC"] <- "PSEMAC"
+rich26$code[rich26$code == "BOUSTR"] <- "BOESTR"
+rich26$code[rich26$code == "GRIALP"] <- "GRISUB"
+rich26$code[rich26$code == "RHEHYB"] <- "CHEHYB"
+rich26$code[rich26$code == "OENSUG"] <- "OENSUF"
+rich26$code[rich26$code == "SYMOFF"] <- "CYNOFF"
+rich26$code[rich26$code == "AIRARV"] <- "CIRARV"
+rich26$code[rich26$code == "DRISUB"] <- "GRISUB"
+rich26$code[rich26$code == "ERIGLA"] <- "ERIFLA"
+rich26$code[rich26$code == "PENSTR"] <- "PENVIR"
+rich26$code[rich26$code == "SILACA"] <- "SILANT"
+rich26$code[rich26$code == "PENSTE"] <- "PENSEC"
+rich26 <- rich26[rich26$code != "JAMAME",]  # no clue, removing for now (will look at data on campus)
+rich26 <- rich26[rich26$code != "PLAPUR",]  # no clue, removing for now (will look at data on campus)
+rich26 <- rich26[rich26$code != "CALCAN",]  # no clue, removing for now (will look at data on campus)
+rich26 <- rich26[rich26$code != "DACGLO",]  # no clue, removing for now (will look at data on campus)
+rich26 <- rich26[rich26$code != "PHASER",]  # no clue, removing for now (will look at data on campus)
+rich26 <- rich26[rich26$code != "POLPUL",]  # no clue, removing for now (will look at data on campus)
+unique(rich26$code[rich26$code %notin% sp.info$code]) ## mostly unknowns as errors
+
+
+#### Making a list for future generalizability ####
+rich.list <- list()
+rich.list[[1]] <- rich25
+rich.list[[2]] <- rich26
+# rich.list[[3]] <- rich27
+# rich.list[[4]] <- rich28
+# rich.list[[5]] <- rich29
+rm(rich25);rm(rich26)
+
+cover.list <- list()
+cover.list[[1]] <- cover25
+cover.list[[2]] <- cover26
+# cover.list[[3]] <- cover27
+# cover.list[[4]] <- cover28
+# cover.list[[5]] <- cover29
+rm(cover25);rm(cover26)
+
 
 #### Average Species Cover per Plot ####
-table(cover$plot) ## looking at plots and double checkking
-length(unique(cover$plot)) ## No plots missing
-table(rich$plot)
-length(unique(rich$plot)) ## No plots missing
+nyears <- 2
 
-length(unique(cover$code))
-str(cover)
-cover$cov <- as.numeric(cover$cov)
-cover[is.na(cover$cov),] ## will have to fix this later
+for(i in 1:nyears){
+  print(length(unique(cover.list[[i]]$plot)))
+  print(length(unique(rich.list[[i]]$plot)))
+} ## no plots missing
 
 trans.avg <- function(x){
   transavg <- (sum(x))/3
@@ -106,964 +190,136 @@ plot.avg <- function(x){
 } ## Custom function to take the average on each plot
 ## Sum is divided by 3 because there were 3 transects and 0 values were not recorded.
 
-cover.sum <- cover %>% 
-  group_by(plot, transect, code) %>% 
-  summarise(transavg = trans.avg(cov)) %>%
-  group_by(plot, code) %>%
-  summarise(plotavg = plot.avg(transavg)) ## summarizing by transect then by plot
-
-str(cover.sum)
-cover.sum <- as.data.frame(cover.sum)
-length(unique(cover.sum$plot)) ## 108 plots (this is correct)
+cover.sum.list <- list()
+for(i in 1:nyears){
+  cover.sum.list[[i]] <- cover.list[[i]] %>% 
+    group_by(plot, transect, code) %>% 
+    summarise(transavg = trans.avg(cov)) %>%
+    group_by(plot, code) %>%
+    summarise(plotavg = plot.avg(transavg)) ## summarizing by transect then by plot
+  cover.sum.list[[i]] <- as.data.frame(cover.sum.list[[i]])
+  print(length(unique(cover.sum.list[[i]]$plot)))
+  print(length(unique(cover.sum.list[[i]]$code)))
+}
 
 #### Creating Community Data (Cover Estimates + Rare Species only found as richness) ####
-rich
-rich <- rbind(rich[,c(1,2)], cover[,c(1,4)]) ## adding the rich and cover data together, just to make sure we didn't miss any species in any plot
-rich <- rich[order(rich$plot, rich$code),] ## ordering the dataframe
-rich <- rich[!duplicated(rich),] ## removing duplicates (same species and same plot, but not same species different plot)
-table(rich$code)
-rich$plotavg <- 0
-
-comm <- rbind(cover.sum,rich) ## creating a community dataframe that has both cover and richness
-comm <- comm[order(comm$plot, comm$code),] ## ordering the community data
-
-comm.sum <- NA
-vec <- unique(comm$plot)
-for(i in 1:length(vec)){
-  tmp <- comm[comm$plot == vec[i],]
-  tmp <- tmp[!duplicated(tmp$code),]
-  comm.sum <- rbind(comm.sum,tmp)
-  print(i/length(vec))
-} ## removing the richness (with cover of 0) for species that were present in the cover estimates
-comm.sum <- comm.sum[-1,] ## removing the first row (error)
-comm.sum <- comm.sum[order(comm.sum$plot, comm.sum$code,comm.sum$plotavg),] ## ordering the data
-
-comm.sum.long <- comm.sum ## making a second community dataframe that I can transform and use for further analysis
-comm.sum <- reshape(comm.sum, idvar = "plot", timevar = "code", direction = "wide") ## reshaping the data
-rownames(comm.sum) <- comm.sum$plot ## renaming rows to be PlotID
-comm.sum$plot <- NULL ## removing non species column
-colnames(comm.sum) <- sub("plotavg.", "", colnames(comm.sum)) ## changing column names to be species codes
-
-PlotCov <- as.data.frame(apply(comm.sum, 1, sum, na.rm = TRUE)) ## getting the total cover per plot
-colnames(PlotCov) <- "TotalPlotCover" ## renaming the column for later
-
-SpeciesFreq <- ifelse(comm.sum[,] >= 0,1,0) ## turning into a presense (1) absence (0) dataframe
-
-PlotRichness <- as.data.frame(apply(SpeciesFreq, 1, sum, na.rm = TRUE)) ## recalculating a richness per plot
-colnames(PlotRichness) <- "richness"
-
-SpeciesFreq <- as.data.frame(apply(SpeciesFreq, 2, sum, na.rm = TRUE)) ## getting the number of times a species occurred 
-colnames(SpeciesFreq) <- "SpeciesFrequency" ## renaming to be be easy to identify later
-SpeciesFreq$Species <- rownames(SpeciesFreq)
-
-rm(tmp);rm(i);rm(vec);rm(plot.avg);rm(trans.avg)
-
-### Should sites be split in analysis? ####
-## PERMANOVA 
-comm.sum[comm.sum == 0] <- 0.0001
-comm.sum[is.na(comm.sum)] <- 0
-
-comm.dat <- as.matrix(comm.sum) ## making a sep df to test comm. data
-soils <- soils[order(soils$Field.ID),]
-soils.dat <- as.matrix(soils[,c(5:16)])
-rownames(soils.dat) <- soils$Field.ID
-env <- env[order(env$plot),]
-sites <- factor(env$site) ## the sites are not perfectly ordered so I have to use these numbers
-sev <- factor(env$sev, levels = c("unburn","low","mod","high"))
-trt <- factor(env$trt)
-
-PERMANOVA.comm <- adonis2(comm.dat ~ sites+sev+trt, 
-                          permutations = 999,
-                          method = "bray")
-PERMANOVA.soil <- adonis2(soils.dat ~ sites+sev+trt, 
-                          permutations = 999,
-                          method = "bray")
-
-print(PERMANOVA.comm) ## differences between sites
-print(PERMANOVA.soil) ## differences between sites
-
-# Check homogeneity of dispersions (important assumption)
-# This tests if variance within groups is similar
-dist_matrix.comm <- vegdist(comm.dat, method = "bray")
-dist_matrix.soil <- vegdist(soils.dat, method = "bray")
-
-dispersion.comm <- betadisper(dist_matrix.comm, sites)
-dispersion.soil <- betadisper(dist_matrix.soil, sites)
-
-permutest(dispersion.comm, permutations = 999)
-permutest(dispersion.soil, permutations = 999)
-
-# Visualize dispersions
-par(mfrow = c(1,2))
-plot(dispersion.comm) ## sites are very different
-plot(dispersion.soil) ## sites are very different
-
-rm(PERMANOVA.comm);rm(dist_matrix.comm);rm(dispersion.comm)
-rm(PERMANOVA.soil);rm(dist_matrix.soil);rm(dispersion.soil)
-rm(comm.dat);rm(soils.dat);rm(trt);rm(sev);rm(sites)
-
-#### Summary Stats of Fire-Retardant ####
-q.fr <- read.csv("./data/Quarry_aerialDrops.csv")
-sc.fr <- read.csv("./data/StoneCanyon_aerialDrops.csv")
-
-mean(q.fr$Shape_Leng)
-sd(q.fr$Shape_Leng)
-mean(sc.fr$Shape_Leng)
-sd(sc.fr$Shape_Leng)
-
-mean(q.fr$GalDropped)*3.785
-sd(q.fr$GalDropped)*3.785
-mean(sc.fr$GalDropped)*3.785
-sd(sc.fr$GalDropped)*3.785
-
-## some quick math to look at L per area (for comparison w/ fertilzation)
-## quarry
-(mean(q.fr$GalDropped)*3.785)/(235*10000)
-(mean(q.fr$GalDropped)*3.785)/(mean(q.fr$Shape_Leng))
-
-(mean(sc.fr$GalDropped)*3.785)/(627*10000)
-(mean(sc.fr$GalDropped)*3.785)/(mean(sc.fr$Shape_Leng))
-
-
-#### Question 1 ####
-## SOILS Data question
-## How does fire retardant application influence soil nitrogen and 
-## phosphorous compared to unamended burned and unburned areas?
-
-## preliminary visualizations
-## looking at variation between sites, treatments, and burn severity
-
-par(mfrow = c(1,1))
-## NH4
-plot(soils$NH4, col = as.factor(soils$Location), pch = 16) 
-plot(soils$NH4, col = as.factor(soils$Treatment), pch = 16)
-plot(soils$NH4, col = as.factor(soils$Burn.Severity), pch = 16)
-## seems more related to burn severity
-
-## NO3
-plot(soils$NO3, col = as.factor(soils$Location), pch = 16)
-plot(soils$NO3, col = as.factor(soils$Treatment), pch = 16)
-plot(soils$NO3, col = as.factor(soils$Burn.Severity), pch = 16)
-## NO3 is higher in trt regardless of burn severity
-
-## PO4
-plot(soils$PO4, col = as.factor(soils$Location), pch = 16)
-plot(soils$PO4, col = as.factor(soils$Treatment), pch = 16)
-plot(soils$PO4, col = as.factor(soils$Burn.Severity), pch = 16)
-## looks like heavily related to trt
-
-## splitting into two different groups
-quarry.soils <- soils[soils$Location == "Quarry",]
-quarry.soils$Burn.Severity <- factor(quarry.soils$Burn.Severity, levels = c("Unburned", "Low", "Moderate", "High"))
-quarry.soils$Treatment <- as.factor(quarry.soils$Treatment)
-
-sc.soils <- soils[soils$Location == "Stone Canyon",]
-sc.soils$Burn.Severity[sc.soils$Burn.Severity == "Fire  Line"] <- "Burned"
-sc.soils$Burn.Severity <- factor(sc.soils$Burn.Severity, levels = c("Unburned", "Burned"))
-sc.soils$Treatment <- as.factor(sc.soils$Treatment)
-
-## Linear Models
-## NH4
-NH4.mod.q <- lm(NH4 ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(NH4.mod.q)
-plot(residuals(NH4.mod.q))
-qqnorm(residuals(NH4.mod.q), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(NH4.mod.q), col = "red", lwd = 2, lty = 2) ## okay enough
-
-NH4.mod.sc <- lm(NH4 ~ Burn.Severity*Treatment, data = sc.soils)
-summary(NH4.mod.sc)
-plot(residuals(NH4.mod.sc))
-qqnorm(residuals(NH4.mod.sc), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(NH4.mod.sc), col = "red", lwd = 2, lty = 2) ## okay enough
-rm(NH4.mod.q);rm(NH4.mod.sc)
-
-## NO3
-NO3.mod.q <- lm(NO3 ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(NO3.mod.q)
-plot(residuals(NO3.mod.q))
-qqnorm(residuals(NO3.mod.q), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(NO3.mod.q), col = "red", lwd = 2, lty = 2) ## okay enough
-
-NO3.mod.sc <- lm(NO3 ~ Burn.Severity*Treatment, data = sc.soils)
-summary(NO3.mod.sc)
-plot(residuals(NO3.mod.sc))
-qqnorm(residuals(NO3.mod.sc), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(NO3.mod.sc), col = "red", lwd = 2, lty = 2) ## okay enough
-rm(NO3.mod.q);rm(NO3.mod.sc)
-
-## PO4
-P.mod.q <- lm(PO4 ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(P.mod.q)
-plot(residuals(P.mod.q))
-qqnorm(residuals(P.mod.q), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(P.mod.q), col = "red", lwd = 2, lty = 2) ## okay enough
-
-P.mod.sc <- lm(PO4 ~ Burn.Severity*Treatment, data = sc.soils)
-summary(P.mod.sc)
-plot(residuals(P.mod.sc))
-qqnorm(residuals(P.mod.sc), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(P.mod.sc), col = "red", lwd = 2, lty = 2) ## okay enough
-rm(P.mod.q);rm(P.mod.sc)
-
-## supplemental analysis of additional nutrients
-colnames(soils[c(5:16)])
-
-## pH
-pH.mod.q <- lm(pH ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(pH.mod.q)
-pH.mod.sc <- lm(pH ~ Burn.Severity*Treatment, data = sc.soils)
-summary(pH.mod.sc)
-rm(pH.mod.q);rm(pH.mod.sc)
-
-## Na
-Na.mod.q <- lm(Na ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(Na.mod.q)
-Na.mod.sc <- lm(Na ~ Burn.Severity*Treatment, data = sc.soils)
-summary(Na.mod.sc)
-rm(Na.mod.q);rm(Na.mod.sc)
-
-## K
-K.mod.q <- lm(K ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(K.mod.q)
-K.mod.sc <- lm(K ~ Burn.Severity*Treatment, data = sc.soils)
-summary(K.mod.sc)
-rm(K.mod.q);rm(K.mod.sc)
-
-## SO4
-SO4.mod.q <- lm(SO4 ~ Burn.Severity*Treatment, data = quarry.soils)
-summary(SO4.mod.q)
-SO4.mod.sc <- lm(SO4 ~ Burn.Severity*Treatment, data = sc.soils)
-summary(SO4.mod.sc)
-rm(SO4.mod.q);rm(SO4.mod.sc)
-
-## Looking into how much the nutrients vary across treatments
-aggregate(quarry.soils$NH4 ~ quarry.soils$Treatment, FUN= mean)
-aggregate(sc.soils$NH4 ~ sc.soils$Treatment, FUN= mean)
-
-aggregate(quarry.soils$NO3 ~ quarry.soils$Treatment, FUN= mean) ## order of magnitude greater
-aggregate(sc.soils$NO3 ~ sc.soils$Treatment, FUN= mean)
-
-aggregate(quarry.soils$PO4 ~ quarry.soils$Treatment, FUN= mean) ## order of magnitude greater
-aggregate(sc.soils$PO4 ~ sc.soils$Treatment, FUN= mean) ## two orders of magnitude greater
-## consistently higher soil nutrient concentrations in the fire retardant treatments
-
-#### Figure 2 - Soils ####
-soils$Burn.Severity[soils$Burn.Severity == "Fire  Line"] <- "Burned"
-soils$Burn.Severity[soils$Burn.Severity == "Burned"] <- "Low"
-
-se <- function(x){sd(x)/sqrt(length(x))} ## creating a function for standard error
-soils$plotting <- ifelse(soils$Burn.Severity == "Unburned" & soils$Treatment == "Control", "UCON",
-                                ifelse(soils$Burn.Severity == "Unburned" & soils$Treatment == "Fire Retardant", "UFR",
-                                       ifelse(soils$Burn.Severity == "Low" & soils$Treatment == "Control", "LCON",
-                                              ifelse(soils$Burn.Severity == "Low" & soils$Treatment == "Fire Retardant", "LFR", 
-                                                     ifelse(soils$Burn.Severity == "Moderate" & soils$Treatment == "Control", "MCON",
-                                                            ifelse(soils$Burn.Severity == "Moderate" & soils$Treatment == "Fire Retardant", "MFR",
-                                                                   ifelse(soils$Burn.Severity == "High" & soils$Treatment == "Control", "HCON",
-                                                                          ifelse(soils$Burn.Severity == "High" & soils$Treatment == "Fire Retardant", "HFR", NA))))))))
-## setting figure parameters 
-Fig2order.sc <- c("UCON","LCON")
-vec1.sc <- c(0.9,1.9)
-Fig2paired.sc <- c("UFR","LFR")
-vec2.sc <- c(1.1,2.1)
-
-Fig2order.q <- c("UCON","LCON","MCON","HCON")
-vec1.q <- c(0.9,1.9,2.9,3.9)
-Fig2paired.q <- c("UFR","LFR","MFR","HFR")
-vec2.q <- c(1.1,2.1,3.1,4.1)
-
-SC <- soils[soils$Location == "Stone Canyon",]
-Quarry <- soils[soils$Location == "Quarry",]
-
-par(mfrow = c(3,2))
-
-## change the nutrients of interest based on the column name in soils df
-nut <- 'NH4'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
+for(i in 1:nyears){
+  rich.list[[i]] <- rbind(rich.list[[i]][,c(1,2)], cover.list[[i]][,c(1,4)])
+  rich.list[[i]] <- rich.list[[i]][order(rich.list[[i]]$plot, rich.list[[i]]$code),] ## ordering the dataframe
+  rich.list[[i]] <- rich.list[[i]][!duplicated(rich.list[[i]]),] ## removing duplicates (same species and same plot, but not same species different plot)
+  rich.list[[i]]$plotavg <- 0
+  print(length(unique(rich.list[[i]]$code)))
 }
 
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
+long <- list()
+for(i in 1:nyears){
+  long[[i]] <- rbind(cover.sum.list[[i]],rich.list[[i]]) ## creating a community dataframe that has both cover and richness
+  long[[i]] <- as.data.frame(long[[i]][order(long[[i]]$plot, long[[i]]$code),]) ## ordering the community data
+  large.temp <- data.frame()
+  vec <- unique(long[[i]]$plot)
+  for(j in 1:length(vec)){
+    tmp <- long[[i]][long[[i]]$plot == vec[j],]
+    tmp <- tmp[!duplicated(tmp$code),]
+    large.temp <- rbind(large.temp,tmp)
+    print(j/length(vec))
+  } ## removing the richness (with cover of 0) for species that were present in the cover estimates
+  long[[i]] <- large.temp
+  long[[i]] <- long[[i]][order(long[[i]]$plot, long[[i]]$code,long[[i]]$plotavg),] ## ordering the data
 }
 
-## change the nutrients of interest based on the column name in soils df
-nut <- 'NO3'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
+wide <- list()
+for(i in 1:nyears){
+  wide[[i]] <- reshape(long[[i]], idvar = "plot", timevar = "code", direction = "wide") ## reshaping the data
+  rownames(wide[[i]]) <- wide[[i]]$plot ## renaming rows to be PlotID
+  wide[[i]]$plot <- NULL ## removing non species column
+  colnames(wide[[i]]) <- sub("plotavg.", "", colnames(wide[[i]])) ## changing column names to be species codes
 }
 
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
+summary.df <- data.frame(plot = env$plot[order(env$plot)])
+sp.freq.df <- data.frame(species = unique(c(long[[1]]$code, long[[2]]$code)),
+                         yr2025 = NA,
+                         yr2026 = NA,
+                         yr2027 = NA,
+                         yr2028 = NA,
+                         yr2029 = NA)
+
+
+vec <- c(2025,2026,2027,2028,2029)
+for(i in 1:nyears){
+  tmp <- as.data.frame(apply(wide[[i]], 1, sum, na.rm = TRUE)) ## getting the total cover per plot
+  sp.freq <- ifelse(wide[[i]][,] >= 0,1,0)
+  tmp$rich <- apply(sp.freq, 1, sum, na.rm = TRUE) ## recalculating a richness per plot
+  colnames(tmp) <- c(paste0("tot.cov.", vec[i]),paste0("rich.", vec[i]))
+  summary.df <- cbind(summary.df,tmp)
   
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
+  sp.freq <- as.data.frame(apply(sp.freq, 2, sum, na.rm = TRUE)) ## getting the number of times a species occurred 
+  colnames(sp.freq) <- "sp.freq" ## renaming to be be easy to identify
+  sp.freq.df[match(rownames(sp.freq),sp.freq.df$species),(i+1)] <- sp.freq
 }
 
-## change the nutrients of interest based on the column name in soils df
-nut <- 'PO4'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-#### Management Brief Soils Figure ####
-par(mfrow = c(2,2))
-nut <- "NH4"
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(Quarry[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-nut <- "NO3"
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(Quarry[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-nut <- "PO4"
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(Quarry[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-#### Supplemental Soil Nutrient Figures ####
-## pH
-## change the nutrients of interest based on the column name in soils df
-par(mfrow = c(1,2))
-nut <- 'pH'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(5,9),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-abline(h = 7, lty = 2)
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(5,9),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-abline(h = 7, lty = 2)
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-## Na, K, SO4
-par(mfrow = c(3,2))
-
-## change the nutrients of interest based on the column name in soils df
-nut <- 'Na'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-## change the nutrients of interest based on the column name in soils df
-nut <- 'K'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-## change the nutrients of interest based on the column name in soils df
-nut <- 'SO4'
-plot(x = c(0.5:4.5),
-     y = c(0.5:4.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:4), line = 1, tick = F, labels = c("Unburned", "Low", "Moderate", "High"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.q)){
-  points(x = rep(vec1.q[i], length(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2order.q[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.q[i], length(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])),
-         y = Quarry[,nut][Quarry$plotting == Fig2paired.q[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x0 = vec1.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2order.q[i]])), x1 = vec1.q[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.q[i]+0.1,
-         y = mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])-se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x0 = vec2.q[i]+0.1, 
-           y1 = (mean(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])+se(Quarry[,nut][Quarry$plotting == Fig2paired.q[i]])), x1 = vec2.q[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-plot(x = c(0.5:2.5),
-     y = c(0.5:2.5),
-     ylim = c(0,max(soils[,nut])),
-     las = 1,
-     cex.axis = 1.5,
-     ylab = "", ## density
-     type = "n",
-     xaxt = "n",
-     xlab = "") ## disturbance history
-axis(1, at = c(1:2), line = 1, tick = F, labels = c("Unburned", "Low"), cex.axis = 1.5)
-for(i in 1:length(Fig2order.sc)){
-  points(x = rep(vec1.sc[i], length(SC[,nut][SC$plotting == Fig2order.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2order.sc[i]],
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 19)
-  points(x = rep(vec2.sc[i], length(SC[,nut][SC$plotting == Fig2paired.sc[i]])),
-         y = SC[,nut][SC$plotting == Fig2paired.sc[i]],
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 19)
-  
-  points(x = vec1.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2order.sc[i]]),
-         col = rgb(0,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])-se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x0 = vec1.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2order.sc[i]])+se(SC[,nut][SC$plotting == Fig2order.sc[i]])), x1 = vec1.sc[i]+0.1, 
-           col = rgb(0,0,0),lwd = 1.5)
-  
-  points(x = vec2.sc[i]+0.1,
-         y = mean(SC[,nut][SC$plotting == Fig2paired.sc[i]]),
-         col = rgb(1,0,0, alpha = 0.5),
-         pch = 17)
-  segments(y0 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])-se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x0 = vec2.sc[i]+0.1, 
-           y1 = (mean(SC[,nut][SC$plotting == Fig2paired.sc[i]])+se(SC[,nut][SC$plotting == Fig2paired.sc[i]])), x1 = vec2.sc[i]+0.1, 
-           col = rgb(1,0,0),lwd = 1.5)
-  
-}
-
-rm(Quarry);rm(SC);rm(Fig2order.q);rm(Fig2paired.q);rm(Fig2order.sc);rm(Fig2paired.sc)
-rm(i);rm(vec1.sc);rm(vec2.sc);rm(vec1.q);rm(vec2.q)
-rm(nut)
-par(mfrow = c(1,1))
+comm.list <- c(long, wide)
+rm(list = setdiff(ls(), c("comm.list", "summary.df", "sp.freq.df","env", "sp.info")))
 
 
-#### Question 2  ####
-## Community Composition Question
-## How do vegetative communities in fire-retardant drop zones differ in species richness, 
-## community composition, and cover compared to burned, unburned, and adjacent fire 
-## perimeter sites without drops?
+#### Vegetation Changes  ####
+## is total cover different between years
+## is total richness different between years
+## is the cover of non-native annuals different
+## if changes are occurring, where are they happening?
 
-## part 1 - general trend cover/richness (boxplots)  - supplement split them
-## part 2 - general trend cover/richness (native vs. invasive spp.) - supplement split them
-## part 3 - glmm broken out by site (look at site differences)
-## part 4 - ordination of whole comm (site being a split)
+t.test(summary.df$tot.cov.2025,summary.df$tot.cov.2026, paired = T) ## difference in cover
+t.test(summary.df$rich.2025,summary.df$rich.2026, paired = T) ## no difference
+
+summary.df$trt <- env$trt
+summary.df$sev <- env$sev
+t.test(summary.df$tot.cov.2025[summary.df$trt == "fr"],summary.df$tot.cov.2026[summary.df$trt == "fr"], paired = T) ## no difference
+t.test(summary.df$tot.cov.2025[summary.df$trt == "con"],summary.df$tot.cov.2026[summary.df$trt == "con"], paired = T) ## difference in cover
+## decline appears to be in control plots
+
+t.test(summary.df$rich.2025[summary.df$trt == "fr"],summary.df$rich.2026[summary.df$trt == "fr"], paired = T) ## no difference
+t.test(summary.df$rich.2025[summary.df$trt == "con"],summary.df$rich.2026[summary.df$trt == "con"], paired = T) ## difference in cover
+## no difference
+
+str(summary.df)
+summary.df$trt <- factor(summary.df$trt, levels = c("con", "fr"))
+summary.df$sev <- factor(summary.df$sev, levels = c("unburn", "low", "mod", "high"))
+summary.df$diff.cov <- summary.df$tot.cov.2025 - summary.df$tot.cov.2026
+summary(lm(diff.cov ~ trt*sev, data = summary.df))
+summary(lm(diff.cov ~ trt+sev, data = summary.df))
+## no real effect of trt or sev on difference in cover
+
+plot(diff.cov ~ trt, data = summary.df)
+plot(diff.cov ~ sev, data = summary.df)
+
+sp.freq.df$duration <- sp.info$duration[match(sp.freq.df$species, sp.info$code)]
+sp.freq.df$functional.group <- sp.info$functional.group[match(sp.freq.df$species, sp.info$code)]
+sp.freq.df$status <- sp.info$status[match(sp.freq.df$species, sp.info$code)]
+
+sp.freq.df$yr2025[is.na(sp.freq.df$yr2025)] <- 0
+sp.freq.df$yr2026[is.na(sp.freq.df$yr2026)] <- 0
+sp.freq.df <- sp.freq.df[complete.cases(sp.freq.df$duration),]
+sp.freq.df$diff <- sp.freq.df$yr2025 - sp.freq.df$yr2026
+
+str(sp.freq.df)
+sp.freq.df$duration <- factor(sp.freq.df$duration, levels = c("annual", "perennial"))
+sp.freq.df$functional.group <- factor(sp.freq.df$functional.group, levels = c("forb", "gram", "shrub", "tree"))
+sp.freq.df$status <- factor(sp.freq.df$status, levels = c("N", "I"))
+
+summary(lm(diff ~ duration, data = sp.freq.df))
+plot(diff ~ duration, data = sp.freq.df) ## a slight increase in annuals
+
+summary(lm(diff ~ functional.group, data = sp.freq.df))
+plot(diff ~ functional.group, data = sp.freq.df) ## no landscape change among fg
+
+summary(lm(diff ~ status, data = sp.freq.df))
+plot(diff ~ status, data = sp.freq.df) ## no landscape change among native vs non-native
+
+annuals <- sp.freq.df[sp.freq.df$duration == "annual",]
+summary(lm(diff ~ status, data = annuals))
+plot(diff ~ status, data = annuals) ## no landscape change among fg
+
+
+
 
 ## part 1.1 - richness between control and trt
 PlotRichness$sev <- env$sev[match(rownames(PlotRichness),env$plot)]
