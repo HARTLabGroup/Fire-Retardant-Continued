@@ -327,75 +327,501 @@ summary.df$diff.inv <- summary.df$pr.inv.2026 - summary.df$pr.inv.2025
 summary.df$diff.ann <- summary.df$pr.ann.2026 - summary.df$pr.ann.2025
 summary.df$diff.invann <- summary.df$pr.invann.2026 - summary.df$pr.invann.2025
 
+se <- function(x){sd(x)/sqrt(length(x))} ## creating a function for standard error
+pal <- c("#f6d746", "#e55c30", "#84206b", "#140b34")
+pal2 <- c("black", "red")
+par(mfrow = c(1,2))
 
 ## COVER
 t.test(summary.df$tot.cov.2026, summary.df$tot.cov.2025, paired = T) ## increase in cover 10%
 summary(lm(diff.cov ~ trt, data = summary.df)) ## control has more cover (indistinguishable from fr though)
-plot(diff.cov ~ trt, data = summary.df)
+plot(summary.df$diff.cov ~ summary.df$trt, outline = F,
+     ylim = c(min(summary.df$diff.cov)-10,max(summary.df$diff.cov)+10),
+     las = 1,
+     ylab = "difference in cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.cov[summary.df$trt == "con"])),rep(2, length(summary.df$diff.cov[summary.df$trt == "fr"]))),0.25),
+       y = c(summary.df$diff.cov[summary.df$trt == "con"], summary.df$diff.cov[summary.df$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       # col = c(pal[summary.df$sev[summary.df$trt == "con"]],pal[summary.df$sev[summary.df$trt == "fr"]] ),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.cov ~ sev, data = summary.df)) ## mod and high sev have higher cover (no groups are distinct)
 TukeyHSD(aov(diff.cov ~ sev, data = summary.df))
-plot(diff.cov ~ sev, data = summary.df)
+plot(summary.df$diff.cov ~ summary.df$sev, outline = F,
+     ylim = c(min(summary.df$diff.cov)-10,max(summary.df$diff.cov)+10),
+     las = 1,
+     ylab = "difference in cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.cov[summary.df$sev == "unburn"])),rep(2, length(summary.df$diff.cov[summary.df$sev == "low"])),rep(3, length(summary.df$diff.cov[summary.df$sev == "mod"])),rep(4, length(summary.df$diff.cov[summary.df$sev == "high"]))),0.25),
+       y = c(summary.df$diff.cov[summary.df$sev == "unburn"], summary.df$diff.cov[summary.df$sev == "low"],summary.df$diff.cov[summary.df$sev == "mod"], summary.df$diff.cov[summary.df$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.cov ~ sev*trt, data = summary.df)) ## no groups different from 0
 TukeyHSD(aov(diff.cov ~ trt_sev, data = summary.df)) ## no difference between groups
-plot(diff.cov ~ trt_sev, data = summary.df)
+# plot(diff.cov ~ trt_sev, data = summary.df)
 
 
 ## RICHNESS
 t.test(summary.df$rich.2026, summary.df$rich.2025, paired = T) ## no difference between years
 summary(lm(diff.rich ~ trt, data = summary.df)) ## no difference
-plot(diff.rich ~ trt, data = summary.df) 
+plot(summary.df$diff.rich ~ summary.df$trt, outline = F,
+     ylim = c(min(summary.df$diff.rich)-1,max(summary.df$diff.rich)+1),
+     las = 1,
+     ylab = "difference in richness",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.rich[summary.df$trt == "con"])),rep(2, length(summary.df$diff.rich[summary.df$trt == "fr"]))),0.25),
+       y = c(summary.df$diff.rich[summary.df$trt == "con"], summary.df$diff.rich[summary.df$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.rich ~ sev, data = summary.df)) ## high diff from unburned
 TukeyHSD(aov(diff.rich ~ sev, data = summary.df)) ## high diff from other severities
-plot(diff.rich ~ sev, data = summary.df) ## increase in richness in high severity
+plot(summary.df$diff.rich ~ summary.df$sev, outline = F,
+     ylim = c(min(summary.df$diff.rich)-1,max(summary.df$diff.rich)+1),
+     las = 1,
+     ylab = "difference in richness",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.rich[summary.df$sev == "unburn"])),rep(2, length(summary.df$diff.rich[summary.df$sev == "low"])),rep(3, length(summary.df$diff.rich[summary.df$sev == "mod"])),rep(4, length(summary.df$diff.rich[summary.df$sev == "high"]))),0.25),
+       y = c(summary.df$diff.rich[summary.df$sev == "unburn"], summary.df$diff.rich[summary.df$sev == "low"],summary.df$diff.rich[summary.df$sev == "mod"], summary.df$diff.rich[summary.df$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.rich ~ sev*trt, data = summary.df)) ## differences are between burn severity
 TukeyHSD(aov(diff.rich ~ trt_sev, data = summary.df))
-plot(diff.rich ~ trt_sev, data = summary.df)
+# plot(diff.rich ~ trt_sev, data = summary.df)
 
 
 ## NON-NATIVES
+par(mfrow = c(2,2))
+trts <- c("con", "fr")
+sevs <- c("unburn","low","mod","high")
 t.test(summary.df$pr.inv.2026, summary.df$pr.inv.2025, paired = T) ## no difference between years
 summary(lm(diff.inv ~ trt, data = summary.df)) ## no difference
-plot(diff.inv ~ trt, data = summary.df) 
+
+plot(summary.df$diff.inv ~ summary.df$trt, outline = F,
+     ylim = c(min(summary.df$diff.inv)-0.1,max(summary.df$diff.inv)+0.1),
+     las = 1,
+     ylab = "difference in proportion non-native",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.inv[summary.df$trt == "con"])),rep(2, length(summary.df$diff.inv[summary.df$trt == "fr"]))),0.25),
+       y = c(summary.df$diff.inv[summary.df$trt == "con"], summary.df$diff.inv[summary.df$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.inv ~ sev, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.inv ~ sev, data = summary.df)) ## no difference
-plot(diff.inv ~ sev, data = summary.df) ## spread of data different between severities 
+plot(summary.df$diff.inv ~ summary.df$sev, outline = F,
+     ylim = c(min(summary.df$diff.inv)-0.1,max(summary.df$diff.inv)+0.1),
+     las = 1,
+     ylab = "difference in proportion non-native",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.inv[summary.df$sev == "unburn"])),rep(2, length(summary.df$diff.inv[summary.df$sev == "low"])),rep(3, length(summary.df$diff.inv[summary.df$sev == "mod"])),rep(4, length(summary.df$diff.inv[summary.df$sev == "high"]))),0.25),
+       y = c(summary.df$diff.inv[summary.df$sev == "unburn"], summary.df$diff.inv[summary.df$sev == "low"],summary.df$diff.inv[summary.df$sev == "mod"],summary.df$diff.inv[summary.df$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+plot(x = c(0.5:2.5),
+     y = c(0.5:2.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion non-native", 
+     type = "n",
+     xaxt = "n",
+     xlab = "") ## disturbance history
+axis(1, at = c(0.9,1.1,1.9,2.1), line = 0.25, tick = F, labels = c("'25", "'26","'25", "'26"), cex.axis = 0.75)
+axis(1, at = c(1:2), line = 1.5, tick = F, labels = c("con", "fr"), cex.axis = 1)
+
+points(x = jitter(c(rep(0.9, length(summary.df$pr.inv.2025[summary.df$trt == "con"])), rep(1.1,length(summary.df$pr.inv.2025[summary.df$trt == "con"]))), 0.1),
+       y = c(summary.df$pr.inv.2025[summary.df$trt == "con"], summary.df$pr.inv.2026[summary.df$trt == "con"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+points(x = jitter(c(rep(1.9, length(summary.df$pr.inv.2025[summary.df$trt == "fr"])), rep(2.1,length(summary.df$pr.inv.2025[summary.df$trt == "fr"]))), 0.1),
+       y = c(summary.df$pr.inv.2025[summary.df$trt == "fr"], summary.df$pr.inv.2026[summary.df$trt == "fr"]),
+       col = rgb(1,0,0, alpha = 0.5),
+       pch = 19)
+for(i in 1:2){
+  segments(y0 = (mean(summary.df$pr.inv.2025[summary.df$trt == trts[i]])-se(summary.df$pr.inv.2025[summary.df$trt == trts[i]])), x0 = i-0.05, 
+           y1 = (mean(summary.df$pr.inv.2025[summary.df$trt == trts[i]])+se(summary.df$pr.inv.2025[summary.df$trt == trts[i]])), x1 = i-0.05, 
+           col = pal2[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.inv.2026[summary.df$trt == trts[i]])-se(summary.df$pr.inv.2026[summary.df$trt == trts[i]])), x0 = i+0.15, 
+           y1 = (mean(summary.df$pr.inv.2026[summary.df$trt == trts[i]])+se(summary.df$pr.inv.2026[summary.df$trt == trts[i]])), x1 = i+0.15, 
+           col = pal2[i],
+           lwd = 1.5)
+}
+
+plot(x = c(0.5:4.5),
+     y = c(0.5:4.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion non-native", 
+     type = "n",
+     xaxt = "n",
+     xlab = "") ## disturbance history
+axis(1, at = c(0.9,1.1,1.9,2.1,2.9,3.1,3.9,4.1), line = 0.25, tick = F, labels = c("'25","'26","'25","'26","'25","'26","'25","'26"), cex.axis = 0.75)
+axis(1, at = c(1:4), line = 1.5, tick = F, labels = c("unburn", "low", "mod", "high"), cex.axis = 1)
+points(x = jitter(c(rep(0.9, length(summary.df$pr.inv.2025[summary.df$sev == "unburn"])), rep(1.9,length(summary.df$pr.inv.2025[summary.df$sev == "low"])),
+                    rep(2.9, length(summary.df$pr.inv.2025[summary.df$sev == "mod"])), rep(3.9,length(summary.df$pr.inv.2025[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.inv.2025[summary.df$sev == "unburn"], summary.df$pr.inv.2025[summary.df$sev == "low"],
+             summary.df$pr.inv.2025[summary.df$sev == "mod"], summary.df$pr.inv.2025[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.inv.2025[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.inv.2025[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.inv.2025[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.inv.2025[summary.df$sev == "high"]))),
+       pch = 19)
+points(x = jitter(c(rep(1.1, length(summary.df$pr.inv.2026[summary.df$sev == "unburn"])), rep(2.1,length(summary.df$pr.inv.2026[summary.df$sev == "low"])),
+                    rep(3.1, length(summary.df$pr.inv.2026[summary.df$sev == "mod"])), rep(4.1,length(summary.df$pr.inv.2026[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.inv.2026[summary.df$sev == "unburn"], summary.df$pr.inv.2026[summary.df$sev == "low"],
+             summary.df$pr.inv.2026[summary.df$sev == "mod"], summary.df$pr.inv.2026[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.inv.2026[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.inv.2026[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.inv.2026[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.inv.2026[summary.df$sev == "high"]))),
+       pch = 19)
+for(i in 1:4){
+  segments(y0 = (mean(summary.df$pr.inv.2025[summary.df$sev == sevs[i]])-se(summary.df$pr.inv.2025[summary.df$sev == sevs[i]])), x0 = i, 
+           y1 = (mean(summary.df$pr.inv.2025[summary.df$sev == sevs[i]])+se(summary.df$pr.inv.2025[summary.df$sev == sevs[i]])), x1 = i, 
+           col = pal[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.inv.2026[summary.df$sev == sevs[i]])-se(summary.df$pr.inv.2026[summary.df$sev == sevs[i]])), x0 = i+0.2, 
+           y1 = (mean(summary.df$pr.inv.2026[summary.df$sev == sevs[i]])+se(summary.df$pr.inv.2026[summary.df$sev == sevs[i]])), x1 = i+0.2, 
+           col = pal[i],
+           lwd = 1.5)
+}
 
 summary(lm(diff.inv ~ sev*trt, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.inv ~ trt_sev, data = summary.df)) ## no statistical differences
-plot(diff.inv ~ trt_sev, data = summary.df)
+# plot(diff.inv ~ trt_sev, data = summary.df)
 
 
 ## ANNUALS
 t.test(summary.df$pr.ann.2026, summary.df$pr.ann.2025, paired = T) ## decrease in annuals
 summary(lm(diff.ann ~ trt, data = summary.df)) ## no difference
-plot(diff.ann ~ trt, data = summary.df) 
+
+plot(summary.df$diff.ann ~ summary.df$trt, outline = F,
+     ylim = c(min(summary.df$diff.ann)-0.1,max(summary.df$diff.ann)+0.1),
+     las = 1,
+     ylab = "difference in proportion annual",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.ann[summary.df$trt == "con"])),rep(2, length(summary.df$diff.ann[summary.df$trt == "fr"]))),0.25),
+       y = c(summary.df$diff.ann[summary.df$trt == "con"], summary.df$diff.ann[summary.df$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.ann ~ sev, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.ann ~ sev, data = summary.df)) ## no difference
-plot(diff.ann ~ sev, data = summary.df)
+plot(summary.df$diff.ann ~ summary.df$sev, outline = F,
+     ylim = c(min(summary.df$diff.ann)-0.1,max(summary.df$diff.ann)+0.1),
+     las = 1,
+     ylab = "difference in proportion annual",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.ann[summary.df$sev == "unburn"])),rep(2, length(summary.df$diff.ann[summary.df$sev == "low"])),rep(3, length(summary.df$diff.ann[summary.df$sev == "mod"])),rep(4, length(summary.df$diff.ann[summary.df$sev == "high"]))),0.25),
+       y = c(summary.df$diff.ann[summary.df$sev == "unburn"], summary.df$diff.ann[summary.df$sev == "low"],summary.df$diff.ann[summary.df$sev == "mod"],summary.df$diff.ann[summary.df$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+plot(x = c(0.5:2.5),
+     y = c(0.5:2.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion annual", 
+     type = "n",
+     xaxt = "n",
+     xlab = "")
+axis(1, at = c(0.9,1.1,1.9,2.1), line = 0.25, tick = F, labels = c("'25", "'26","'25", "'26"), cex.axis = 0.75)
+axis(1, at = c(1:2), line = 1.5, tick = F, labels = c("con", "fr"), cex.axis = 1)
+
+points(x = jitter(c(rep(0.9, length(summary.df$pr.ann.2025[summary.df$trt == "con"])), rep(1.1,length(summary.df$pr.ann.2026[summary.df$trt == "con"]))), 0.1),
+       y = c(summary.df$pr.ann.2025[summary.df$trt == "con"], summary.df$pr.ann.2026[summary.df$trt == "con"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+points(x = jitter(c(rep(1.9, length(summary.df$pr.ann.2025[summary.df$trt == "fr"])), rep(2.1,length(summary.df$pr.ann.2026[summary.df$trt == "fr"]))), 0.1),
+       y = c(summary.df$pr.ann.2025[summary.df$trt == "fr"], summary.df$pr.ann.2026[summary.df$trt == "fr"]),
+       col = rgb(1,0,0, alpha = 0.5),
+       pch = 19)
+for(i in 1:2){
+  segments(y0 = (mean(summary.df$pr.ann.2025[summary.df$trt == trts[i]])-se(summary.df$pr.ann.2025[summary.df$trt == trts[i]])), x0 = i-0.05, 
+           y1 = (mean(summary.df$pr.ann.2025[summary.df$trt == trts[i]])+se(summary.df$pr.ann.2025[summary.df$trt == trts[i]])), x1 = i-0.05, 
+           col = pal2[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.ann.2026[summary.df$trt == trts[i]])-se(summary.df$pr.ann.2026[summary.df$trt == trts[i]])), x0 = i+0.15, 
+           y1 = (mean(summary.df$pr.ann.2026[summary.df$trt == trts[i]])+se(summary.df$pr.ann.2026[summary.df$trt == trts[i]])), x1 = i+0.15, 
+           col = pal2[i],
+           lwd = 1.5)
+}
+
+plot(x = c(0.5:4.5),
+     y = c(0.5:4.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion annual", 
+     type = "n",
+     xaxt = "n",
+     xlab = "") 
+axis(1, at = c(0.9,1.1,1.9,2.1,2.9,3.1,3.9,4.1), line = 0.25, tick = F, labels = c("'25","'26","'25","'26","'25","'26","'25","'26"), cex.axis = 0.75)
+axis(1, at = c(1:4), line = 1.5, tick = F, labels = c("unburn", "low", "mod", "high"), cex.axis = 1)
+points(x = jitter(c(rep(0.9, length(summary.df$pr.ann.2025[summary.df$sev == "unburn"])), rep(1.9,length(summary.df$pr.ann.2025[summary.df$sev == "low"])),
+                    rep(2.9, length(summary.df$pr.ann.2025[summary.df$sev == "mod"])), rep(3.9,length(summary.df$pr.ann.2025[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.ann.2025[summary.df$sev == "unburn"], summary.df$pr.ann.2025[summary.df$sev == "low"],
+             summary.df$pr.ann.2025[summary.df$sev == "mod"], summary.df$pr.ann.2025[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.ann.2025[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.ann.2025[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.ann.2025[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.ann.2025[summary.df$sev == "high"]))),
+       pch = 19)
+points(x = jitter(c(rep(1.1, length(summary.df$pr.ann.2026[summary.df$sev == "unburn"])), rep(2.1,length(summary.df$pr.ann.2026[summary.df$sev == "low"])),
+                    rep(3.1, length(summary.df$pr.ann.2026[summary.df$sev == "mod"])), rep(4.1,length(summary.df$pr.ann.2026[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.ann.2026[summary.df$sev == "unburn"], summary.df$pr.ann.2026[summary.df$sev == "low"],
+             summary.df$pr.ann.2026[summary.df$sev == "mod"], summary.df$pr.ann.2026[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.ann.2026[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.ann.2026[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.ann.2026[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.ann.2026[summary.df$sev == "high"]))),
+       pch = 19)
+for(i in 1:4){
+  segments(y0 = (mean(summary.df$pr.ann.2025[summary.df$sev == sevs[i]])-se(summary.df$pr.ann.2025[summary.df$sev == sevs[i]])), x0 = i, 
+           y1 = (mean(summary.df$pr.ann.2025[summary.df$sev == sevs[i]])+se(summary.df$pr.ann.2025[summary.df$sev == sevs[i]])), x1 = i, 
+           col = pal[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.ann.2026[summary.df$sev == sevs[i]])-se(summary.df$pr.ann.2026[summary.df$sev == sevs[i]])), x0 = i+0.2, 
+           y1 = (mean(summary.df$pr.ann.2026[summary.df$sev == sevs[i]])+se(summary.df$pr.ann.2026[summary.df$sev == sevs[i]])), x1 = i+0.2, 
+           col = pal[i],
+           lwd = 1.5)
+}
 
 summary(lm(diff.ann ~ sev*trt, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.ann ~ trt_sev, data = summary.df)) ## no statistical differences
-plot(diff.ann ~ trt_sev, data = summary.df) ## widest spread in fr high
+# plot(diff.ann ~ trt_sev, data = summary.df) ## widest spread in fr high
 
 
 ## ANNUAL NON-NATIVES
 t.test(summary.df$pr.invann.2026, summary.df$pr.invann.2025, paired = T) ## no difference
 summary(lm(diff.invann ~ trt, data = summary.df)) ## no difference
-plot(diff.invann ~ trt, data = summary.df) 
+
+plot(summary.df$diff.invann ~ summary.df$trt, outline = F,
+     ylim = c(min(summary.df$diff.invann)-0.1,max(summary.df$diff.invann)+0.1),
+     las = 1,
+     ylab = "difference in proportion non-native annual",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.invann[summary.df$trt == "con"])),rep(2, length(summary.df$diff.invann[summary.df$trt == "fr"]))),0.25),
+       y = c(summary.df$diff.invann[summary.df$trt == "con"], summary.df$diff.invann[summary.df$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
 
 summary(lm(diff.invann ~ sev, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.invann ~ sev, data = summary.df)) ## no difference
-plot(diff.invann ~ sev, data = summary.df) ## more spread at high sev
+plot(summary.df$diff.invann ~ summary.df$sev, outline = F,
+     ylim = c(min(summary.df$diff.invann)-0.1,max(summary.df$diff.invann)+0.1),
+     las = 1,
+     ylab = "difference in proportion non-native annual",
+     xlab = "")
+points(x = jitter(c(rep(1, length(summary.df$diff.invann[summary.df$sev == "unburn"])),rep(2, length(summary.df$diff.invann[summary.df$sev == "low"])),rep(3, length(summary.df$diff.invann[summary.df$sev == "mod"])),rep(4, length(summary.df$diff.invann[summary.df$sev == "high"]))),0.25),
+       y = c(summary.df$diff.invann[summary.df$sev == "unburn"], summary.df$diff.invann[summary.df$sev == "low"],summary.df$diff.invann[summary.df$sev == "mod"],summary.df$diff.invann[summary.df$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+plot(x = c(0.5:2.5),
+     y = c(0.5:2.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion non-native annual", 
+     type = "n",
+     xaxt = "n",
+     xlab = "")
+axis(1, at = c(0.9,1.1,1.9,2.1), line = 0.25, tick = F, labels = c("'25", "'26","'25", "'26"), cex.axis = 0.75)
+axis(1, at = c(1:2), line = 1.5, tick = F, labels = c("con", "fr"), cex.axis = 1)
+
+points(x = jitter(c(rep(0.9, length(summary.df$pr.invann.2025[summary.df$trt == "con"])), rep(1.1,length(summary.df$pr.invann.2026[summary.df$trt == "con"]))), 0.1),
+       y = c(summary.df$pr.invann.2025[summary.df$trt == "con"], summary.df$pr.invann.2026[summary.df$trt == "con"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+points(x = jitter(c(rep(1.9, length(summary.df$pr.invann.2025[summary.df$trt == "fr"])), rep(2.1,length(summary.df$pr.invann.2026[summary.df$trt == "fr"]))), 0.1),
+       y = c(summary.df$pr.invann.2025[summary.df$trt == "fr"], summary.df$pr.invann.2026[summary.df$trt == "fr"]),
+       col = rgb(1,0,0, alpha = 0.5),
+       pch = 19)
+for(i in 1:2){
+  segments(y0 = (mean(summary.df$pr.invann.2025[summary.df$trt == trts[i]])-se(summary.df$pr.invann.2025[summary.df$trt == trts[i]])), x0 = i-0.05, 
+           y1 = (mean(summary.df$pr.invann.2025[summary.df$trt == trts[i]])+se(summary.df$pr.invann.2025[summary.df$trt == trts[i]])), x1 = i-0.05, 
+           col = pal2[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.invann.2026[summary.df$trt == trts[i]])-se(summary.df$pr.invann.2026[summary.df$trt == trts[i]])), x0 = i+0.15, 
+           y1 = (mean(summary.df$pr.invann.2026[summary.df$trt == trts[i]])+se(summary.df$pr.invann.2026[summary.df$trt == trts[i]])), x1 = i+0.15, 
+           col = pal2[i],
+           lwd = 1.5)
+}
+
+plot(x = c(0.5:4.5),
+     y = c(0.5:4.5),
+     ylim = c(0,1),
+     las = 1,
+     cex.axis = 1,
+     ylab = "proportion non-native annual", 
+     type = "n",
+     xaxt = "n",
+     xlab = "") 
+axis(1, at = c(0.9,1.1,1.9,2.1,2.9,3.1,3.9,4.1), line = 0.25, tick = F, labels = c("'25","'26","'25","'26","'25","'26","'25","'26"), cex.axis = 0.75)
+axis(1, at = c(1:4), line = 1.5, tick = F, labels = c("unburn", "low", "mod", "high"), cex.axis = 1)
+points(x = jitter(c(rep(0.9, length(summary.df$pr.invann.2025[summary.df$sev == "unburn"])), rep(1.9,length(summary.df$pr.invann.2025[summary.df$sev == "low"])),
+                    rep(2.9, length(summary.df$pr.invann.2025[summary.df$sev == "mod"])), rep(3.9,length(summary.df$pr.invann.2025[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.invann.2025[summary.df$sev == "unburn"], summary.df$pr.invann.2025[summary.df$sev == "low"],
+             summary.df$pr.invann.2025[summary.df$sev == "mod"], summary.df$pr.invann.2025[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.invann.2025[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.invann.2025[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.invann.2025[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.invann.2025[summary.df$sev == "high"]))),
+       pch = 19)
+points(x = jitter(c(rep(1.1, length(summary.df$pr.invann.2026[summary.df$sev == "unburn"])), rep(2.1,length(summary.df$pr.invann.2026[summary.df$sev == "low"])),
+                    rep(3.1, length(summary.df$pr.invann.2026[summary.df$sev == "mod"])), rep(4.1,length(summary.df$pr.invann.2026[summary.df$sev == "high"]))), 0.1),
+       y = c(summary.df$pr.invann.2026[summary.df$sev == "unburn"], summary.df$pr.invann.2026[summary.df$sev == "low"],
+             summary.df$pr.invann.2026[summary.df$sev == "mod"], summary.df$pr.invann.2026[summary.df$sev == "high"]),
+       col = c(rep(adjustcolor(pal[1], alpha.f = 0.5), length(summary.df$pr.invann.2026[summary.df$sev == "unburn"])),
+               rep(adjustcolor(pal[2], alpha.f = 0.5), length(summary.df$pr.invann.2026[summary.df$sev == "low"])) ,
+               rep(adjustcolor(pal[3], alpha.f = 0.5), length(summary.df$pr.invann.2026[summary.df$sev == "mod"])) ,
+               rep(adjustcolor(pal[4], alpha.f = 0.5), length(summary.df$pr.invann.2026[summary.df$sev == "high"]))),
+       pch = 19)
+for(i in 1:4){
+  segments(y0 = (mean(summary.df$pr.invann.2025[summary.df$sev == sevs[i]])-se(summary.df$pr.invann.2025[summary.df$sev == sevs[i]])), x0 = i, 
+           y1 = (mean(summary.df$pr.invann.2025[summary.df$sev == sevs[i]])+se(summary.df$pr.invann.2025[summary.df$sev == sevs[i]])), x1 = i, 
+           col = pal[i],
+           lwd = 1.5)
+  segments(y0 = (mean(summary.df$pr.invann.2026[summary.df$sev == sevs[i]])-se(summary.df$pr.invann.2026[summary.df$sev == sevs[i]])), x0 = i+0.2, 
+           y1 = (mean(summary.df$pr.invann.2026[summary.df$sev == sevs[i]])+se(summary.df$pr.invann.2026[summary.df$sev == sevs[i]])), x1 = i+0.2, 
+           col = pal[i],
+           lwd = 1.5)
+}
 
 summary(lm(diff.invann ~ sev*trt, data = summary.df)) ## no difference
 TukeyHSD(aov(diff.invann ~ trt_sev, data = summary.df)) ## no statistical differences
-plot(diff.invann ~ trt_sev, data = summary.df) ## widest spread in fr high
+# plot(diff.invann ~ trt_sev, data = summary.df) ## widest spread in fr high
+
+rm(list = setdiff(ls(), c("comm.list", "summary.df", "sp.info.df","env", "sp.info")))
+
+
+#### By Species ####
+par(mfrow = c(1,1))
+head(sp.info.df)
+head(sp.info)
+
+sp.info.df$dur <- sp.info$duration[match(sp.info.df$species, sp.info$code)]
+sp.info.df$fg  <- sp.info$functional.group[match(sp.info.df$species, sp.info$code)]
+sp.info.df$stat  <- sp.info$status[match(sp.info.df$species, sp.info$code)]
+
+### FIX IN GENERATING CODE
+sp.info.df$frq2025[is.na(sp.info.df$frq2025)] <- 0
+sp.info.df$frq2026[is.na(sp.info.df$frq2026)] <- 0
+
+sp.info.df$diff.frq <- sp.info.df$frq2026-sp.info.df$frq2025
+sp.info.df$diff.cov <- sp.info.df$cov2026-sp.info.df$cov2025
+
+hist(sp.info.df$diff.frq)
+
+max(sp.info.df$diff.frq);sp.info.df$species[sp.info.df$diff.frq == max(sp.info.df$diff.frq)]
+min(sp.info.df$diff.frq);sp.info.df$species[sp.info.df$diff.frq == min(sp.info.df$diff.frq)]
+
+max(sp.info.df$diff.cov);sp.info.df$species[sp.info.df$diff.cov == max(sp.info.df$diff.cov)]
+min(sp.info.df$diff.cov);sp.info.df$species[sp.info.df$diff.cov == min(sp.info.df$diff.cov)]
+
+min.frq <- sp.info.df[order(sp.info.df$diff.frq)[1:10],]
+max.frq <- sp.info.df[rev(order(sp.info.df$diff.frq))[1:10],]
+min.cov <- sp.info.df[order(sp.info.df$diff.cov)[1:10],]
+max.cov <- sp.info.df[rev(order(sp.info.df$diff.cov))[1:10],]
+
+min.frq$species
+table(min.frq$dur)
+table(min.frq$fg)
+table(min.frq$stat)
+min.frq$species[min.frq$species %in% min.cov$species]
+table(min.frq$dur[min.frq$species %in% min.cov$species])
+table(min.frq$fg[min.frq$species %in% min.cov$species])
+table(min.frq$stat[min.frq$species %in% min.cov$species])
+
+max.frq$species
+table(max.frq$dur)
+table(max.frq$fg)
+table(max.frq$stat)
+max.frq$species[max.frq$species %in% max.cov$species]
+table(max.frq$dur[max.frq$species %in% max.cov$species])
+table(max.frq$fg[max.frq$species %in% max.cov$species])
+table(max.frq$stat[max.frq$species %in% max.cov$species])
+
+min.cov$species
+table(min.cov$dur)
+table(min.cov$fg)
+table(min.cov$stat)
+
+max.cov$species
+table(max.cov$dur)
+table(max.cov$fg)
+table(max.cov$stat)
+
+## BROTEC increasing in frequency and cover but where?
+BROTEC.plotsyr2 <- data.frame(plot = comm.list[[2]]$plot[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "BROTEC")],
+                              plotavg = comm.list[[2]]$plotavg[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "BROTEC")])
+BROTEC.plotsyr1 <- data.frame(plot = comm.list[[1]]$plot[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "BROTEC")],
+                              plotavg = comm.list[[1]]$plotavg[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "BROTEC")])
+BROTEC.plots <- c(BROTEC.plotsyr1$plot,BROTEC.plotsyr2$plot)
+BROTEC.plots <- unique(BROTEC.plots)
+
+BROTEC.plots <- env[env$plot %in% BROTEC.plots,]
+BROTEC.plots$yr2026cov <- BROTEC.plotsyr2$plotavg[match(BROTEC.plots$plot, BROTEC.plotsyr2$plot)]
+BROTEC.plots$yr2026cov[is.na(BROTEC.plots$yr2026cov)] <- 0
+BROTEC.plots$yr2025cov <- BROTEC.plotsyr1$plotavg[match(BROTEC.plots$plot, BROTEC.plotsyr1$plot)]
+BROTEC.plots$yr2025cov[is.na(BROTEC.plots$yr2025cov)] <- 0
+
+BROTEC.plots$diff.cov <- BROTEC.plots$yr2026cov - BROTEC.plots$yr2025cov
+str(BROTEC.plots)
+BROTEC.plots$trt <- factor(BROTEC.plots$trt, levels = c("con", "fr"))
+BROTEC.plots$sev <- factor(BROTEC.plots$sev, levels = c("unburn", "low", "mod", "high"))
+BROTEC.plots$class <- factor(BROTEC.plots$class, levels = c("GAMBEL", "GAMBEL MIXED CON", "MIXED CON"))
+
+t.test(BROTEC.plots$yr2026cov, BROTEC.plots$yr2025cov, paired = T) ## no statistical difference
+summary(lm(diff.cov ~ trt, data = BROTEC.plots)) ## no difference
+par(mfrow = c(1,2))
+
+plot(BROTEC.plots$diff.cov ~ BROTEC.plots$trt, outline = F,
+     ylim = c(min(BROTEC.plots$diff.cov)-0.1,max(BROTEC.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in BROTEC cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(BROTEC.plots$diff.cov[BROTEC.plots$trt == "con"])),rep(2, length(BROTEC.plots$diff.cov[BROTEC.plots$trt == "fr"]))),0.25),
+       y = c(BROTEC.plots$diff.cov[BROTEC.plots$trt == "con"], BROTEC.plots$diff.cov[BROTEC.plots$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+summary(lm(diff.cov ~ sev, data = BROTEC.plots)) ## no difference
+TukeyHSD(aov(diff.cov ~ sev, data = BROTEC.plots)) ## no difference
+plot(BROTEC.plots$diff.cov ~ BROTEC.plots$sev, outline = F,
+     ylim = c(min(BROTEC.plots$diff.cov)-0.1,max(BROTEC.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in BROTEC cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(BROTEC.plots$diff.cov[BROTEC.plots$sev == "unburn"])),rep(2, length(BROTEC.plots$diff.cov[BROTEC.plots$sev == "low"])),
+                    rep(3, length(BROTEC.plots$diff.cov[BROTEC.plots$sev == "mod"])),rep(4, length(BROTEC.plots$diff.cov[BROTEC.plots$sev == "high"]))),0.25),
+       y = c(BROTEC.plots$diff.cov[BROTEC.plots$sev == "unburn"], BROTEC.plots$diff.cov[BROTEC.plots$sev == "low"],
+             BROTEC.plots$diff.cov[BROTEC.plots$sev == "mod"], BROTEC.plots$diff.cov[BROTEC.plots$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+summary(lm(diff.cov ~ sev*trt, data = BROTEC.plots)) ## no difference
+
 
 
 
