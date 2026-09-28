@@ -772,10 +772,10 @@ table(max.cov$fg)
 table(max.cov$stat)
 
 ## BROTEC increasing in frequency and cover but where?
-BROTEC.plotsyr2 <- data.frame(plot = comm.list[[2]]$plot[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "BROTEC")],
-                              plotavg = comm.list[[2]]$plotavg[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "BROTEC")])
-BROTEC.plotsyr1 <- data.frame(plot = comm.list[[1]]$plot[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "BROTEC")],
-                              plotavg = comm.list[[1]]$plotavg[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "BROTEC")])
+BROTEC.plotsyr2 <- data.frame(plot = comm.list[[2]]$plot[which(comm.list[[2]]$plotavg >= 0 & comm.list[[2]]$code == "BROTEC")],
+                              plotavg = comm.list[[2]]$plotavg[which(comm.list[[2]]$plotavg >= 0 & comm.list[[2]]$code == "BROTEC")])
+BROTEC.plotsyr1 <- data.frame(plot = comm.list[[1]]$plot[which(comm.list[[1]]$plotavg >= 0 & comm.list[[1]]$code == "BROTEC")],
+                              plotavg = comm.list[[1]]$plotavg[which(comm.list[[1]]$plotavg >= 0 & comm.list[[1]]$code == "BROTEC")])
 BROTEC.plots <- c(BROTEC.plotsyr1$plot,BROTEC.plotsyr2$plot)
 BROTEC.plots <- unique(BROTEC.plots)
 
@@ -793,8 +793,8 @@ BROTEC.plots$class <- factor(BROTEC.plots$class, levels = c("GAMBEL", "GAMBEL MI
 
 t.test(BROTEC.plots$yr2026cov, BROTEC.plots$yr2025cov, paired = T) ## no statistical difference
 summary(lm(diff.cov ~ trt, data = BROTEC.plots)) ## no difference
-par(mfrow = c(1,2))
 
+par(mfrow = c(1,3))
 plot(BROTEC.plots$diff.cov ~ BROTEC.plots$trt, outline = F,
      ylim = c(min(BROTEC.plots$diff.cov)-0.1,max(BROTEC.plots$diff.cov)+0.1),
      las = 1,
@@ -822,6 +822,195 @@ points(x = jitter(c(rep(1, length(BROTEC.plots$diff.cov[BROTEC.plots$sev == "unb
 abline(h = 0, lty = 2)
 summary(lm(diff.cov ~ sev*trt, data = BROTEC.plots)) ## no difference
 
+summary(lm(diff.cov ~ class, data = BROTEC.plots)) ## mixed con areas increased
+TukeyHSD(aov(diff.cov ~ class, data = BROTEC.plots)) ## more in mixed con than gambel
+plot(BROTEC.plots$diff.cov ~ BROTEC.plots$class, outline = F,
+     ylim = c(min(BROTEC.plots$diff.cov)-0.1,max(BROTEC.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in BROTEC cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(BROTEC.plots$diff.cov[BROTEC.plots$class == "GAMBEL"])),rep(2, length(BROTEC.plots$diff.cov[BROTEC.plots$class == "GAMBEL MIXED CON"])),
+                    rep(3, length(BROTEC.plots$diff.cov[BROTEC.plots$class == "MIXED CON"]))),0.25),
+       y = c(BROTEC.plots$diff.cov[BROTEC.plots$class == "GAMBEL"], BROTEC.plots$diff.cov[BROTEC.plots$class == "GAMBEL MIXED CON"],
+             BROTEC.plots$diff.cov[BROTEC.plots$class == "MIXED CON"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+
+par(mfrow = c(2,2))
+summary.df$brotec25PA <- 0
+summary.df$brotec26PA <- 0
+
+summary.df$brotec25PA[match(comm.list[[1]]$plot[(which(comm.list[[1]]$code == "BROTEC"))], summary.df$plot)] <- 1
+summary.df$brotec26PA[match(comm.list[[2]]$plot[(which(comm.list[[2]]$code == "BROTEC"))], summary.df$plot)] <- 1
+
+t.test(summary.df$brotec26PA, summary.df$brotec25PA, paired = T) ## 35% increase in BROTEC abundance
+summary(glm(brotec26PA ~ trt*sev, data = summary.df, family = binomial(link = "logit"))) ## highest probability in moderate/high severity
+
+m <- matrix(c(length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$trt == "con"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$trt == "con"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$trt == "fr"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$trt == "fr"])),
+            nrow = 2, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("control", "fire-retardant")
+mosaicplot(m, main = "2025 Cheatgrass Abundance")
+
+m <- matrix(c(length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$sev == "unburn"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$sev == "unburn"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$sev == "low"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$sev == "low"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$sev == "mod"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$sev == "mod"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 1 & summary.df$sev == "high"]),
+              length(summary.df$brotec25PA[summary.df$brotec25PA == 0 & summary.df$sev == "high"])),
+            nrow = 4, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("unburn", "low", "moderate", "high")
+mosaicplot(m, main = "2025 Cheatgrass Abundance")
+
+m <- matrix(c(length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$trt == "con"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$trt == "con"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$trt == "fr"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$trt == "fr"])),
+            nrow = 2, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("control", "fire-retardant")
+mosaicplot(m, main = "2026 Cheatgrass Abundance")
+
+m <- matrix(c(length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$sev == "unburn"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$sev == "unburn"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$sev == "low"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$sev == "low"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$sev == "mod"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$sev == "mod"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 1 & summary.df$sev == "high"]),
+              length(summary.df$brotec26PA[summary.df$brotec26PA == 0 & summary.df$sev == "high"])),
+            nrow = 4, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("unburn", "low", "moderate", "high")
+mosaicplot(m, main = "2026 Cheatgrass Abundance")
+
+
+## QUEGAM increasing in frequency and cover but where?
+QUEGAM.plotsyr2 <- data.frame(plot = comm.list[[2]]$plot[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "QUEGAM")],
+                              plotavg = comm.list[[2]]$plotavg[which(comm.list[[2]]$plotavg > 0 & comm.list[[2]]$code == "QUEGAM")])
+QUEGAM.plotsyr1 <- data.frame(plot = comm.list[[1]]$plot[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "QUEGAM")],
+                              plotavg = comm.list[[1]]$plotavg[which(comm.list[[1]]$plotavg > 0 & comm.list[[1]]$code == "QUEGAM")])
+QUEGAM.plots <- c(QUEGAM.plotsyr1$plot,QUEGAM.plotsyr2$plot)
+QUEGAM.plots <- unique(QUEGAM.plots)
+
+QUEGAM.plots <- env[env$plot %in% QUEGAM.plots,]
+QUEGAM.plots$yr2026cov <- QUEGAM.plotsyr2$plotavg[match(QUEGAM.plots$plot, QUEGAM.plotsyr2$plot)]
+QUEGAM.plots$yr2026cov[is.na(QUEGAM.plots$yr2026cov)] <- 0
+QUEGAM.plots$yr2025cov <- QUEGAM.plotsyr1$plotavg[match(QUEGAM.plots$plot, QUEGAM.plotsyr1$plot)]
+QUEGAM.plots$yr2025cov[is.na(QUEGAM.plots$yr2025cov)] <- 0
+
+QUEGAM.plots$diff.cov <- QUEGAM.plots$yr2026cov - QUEGAM.plots$yr2025cov
+str(QUEGAM.plots)
+QUEGAM.plots$trt <- factor(QUEGAM.plots$trt, levels = c("con", "fr"))
+QUEGAM.plots$sev <- factor(QUEGAM.plots$sev, levels = c("unburn", "low", "mod", "high"))
+QUEGAM.plots$class <- factor(QUEGAM.plots$class, levels = c("GAMBEL", "GAMBEL MIXED CON", "MIXED CON"))
+
+t.test(QUEGAM.plots$yr2026cov, QUEGAM.plots$yr2025cov, paired = T) ## increase in cover
+summary(lm(diff.cov ~ trt, data = QUEGAM.plots)) ## no difference
+par(mfrow = c(1,3))
+plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$trt, outline = F,
+     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in QUEGAM cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "con"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "fr"]))),0.25),
+       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "con"], QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "fr"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+summary(lm(diff.cov ~ sev, data = QUEGAM.plots)) ## moderate and low severity
+TukeyHSD(aov(diff.cov ~ sev, data = QUEGAM.plots)) ## same
+plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$sev, outline = F,
+     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in QUEGAM cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "unburn"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "low"])),
+                    rep(3, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "mod"])),rep(4, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "high"]))),0.25),
+       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "unburn"], QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "low"],
+             QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "mod"], QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "high"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+summary(lm(diff.cov ~ sev*trt, data = QUEGAM.plots)) ## no difference
+
+summary(lm(diff.cov ~ class, data = QUEGAM.plots)) ## mixed con areas increased
+TukeyHSD(aov(diff.cov ~ class, data = QUEGAM.plots)) ## more in mixed con than gambel
+plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$class, outline = F,
+     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
+     las = 1,
+     ylab = "difference in QUEGAM cover",
+     xlab = "")
+points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL MIXED CON"])),
+                    rep(3, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "MIXED CON"]))),0.25),
+       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL"], QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL MIXED CON"],
+             QUEGAM.plots$diff.cov[QUEGAM.plots$class == "MIXED CON"]),
+       col = rgb(0,0,0, alpha = 0.5),
+       pch = 19)
+abline(h = 0, lty = 2)
+
+par(mfrow = c(2,2))
+summary.df$quegam25PA <- 0
+summary.df$quegam26PA <- 0
+
+summary.df$quegam25PA[match(comm.list[[1]]$plot[(which(comm.list[[1]]$code == "QUEGAM"))], summary.df$plot)] <- 1
+summary.df$quegam26PA[match(comm.list[[2]]$plot[(which(comm.list[[2]]$code == "QUEGAM"))], summary.df$plot)] <- 1
+
+t.test(summary.df$quegam26PA, summary.df$quegam25PA, paired = T) ## slight? decrease in QUEGAM abundance
+summary(glm(quegam26PA ~ trt*sev, data = summary.df, family = binomial(link = "logit"))) ## nothing
+
+m <- matrix(c(length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$trt == "con"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$trt == "con"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$trt == "fr"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$trt == "fr"])),
+            nrow = 2, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("control", "fire-retardant")
+mosaicplot(m, main = "2025 Gambel Oak Abundance")
+
+m <- matrix(c(length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "unburn"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "unburn"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "low"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "low"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "mod"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "mod"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "high"]),
+              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "high"])),
+            nrow = 4, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("unburn", "low", "moderate", "high")
+mosaicplot(m, main = "2025 Gambel Oak Abundance")
+
+m <- matrix(c(length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$trt == "con"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$trt == "con"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$trt == "fr"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$trt == "fr"])),
+            nrow = 2, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("control", "fire-retardant")
+mosaicplot(m, main = "2026 Gambel Oak Abundance")
+
+m <- matrix(c(length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "unburn"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "unburn"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "low"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "low"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "mod"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "mod"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "high"]),
+              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "high"])),
+            nrow = 4, ncol = 2, byrow = T)
+colnames(m) <- c("presence", "absence")
+rownames(m) <- c("unburn", "low", "moderate", "high")
+mosaicplot(m, main = "2026 Gambel Oak Abundance")
 
 
 
