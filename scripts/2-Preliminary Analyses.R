@@ -1175,102 +1175,7 @@ summary(lm(diff.cov ~ trt, data = CLAPER.plots)) ## no difference
 summary(lm(diff.cov ~ sev, data = CLAPER.plots)) ## no difference
 summary(lm(diff.cov ~ trt*sev, data = CLAPER.plots)) ## no difference
 
-par(mfrow = c(1,3))
-plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$trt, outline = F,
-     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
-     las = 1,
-     ylab = "difference in QUEGAM cover",
-     xlab = "")
-points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "con"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "fr"]))),0.25),
-       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "con"], QUEGAM.plots$diff.cov[QUEGAM.plots$trt == "fr"]),
-       col = rgb(0,0,0, alpha = 0.5),
-       pch = 19)
-abline(h = 0, lty = 2)
-
-summary(lm(diff.cov ~ sev, data = QUEGAM.plots)) ## moderate and low severity
-TukeyHSD(aov(diff.cov ~ sev, data = QUEGAM.plots)) ## same
-plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$sev, outline = F,
-     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
-     las = 1,
-     ylab = "difference in QUEGAM cover",
-     xlab = "")
-points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "unburn"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "low"])),
-                    rep(3, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "mod"])),rep(4, length(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "high"]))),0.25),
-       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "unburn"], QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "low"],
-             QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "mod"], QUEGAM.plots$diff.cov[QUEGAM.plots$sev == "high"]),
-       col = rgb(0,0,0, alpha = 0.5),
-       pch = 19)
-abline(h = 0, lty = 2)
-summary(lm(diff.cov ~ sev*trt, data = QUEGAM.plots)) ## no difference
-
-summary(lm(diff.cov ~ class, data = QUEGAM.plots)) ## mixed con areas increased
-TukeyHSD(aov(diff.cov ~ class, data = QUEGAM.plots)) ## more in mixed con than gambel
-plot(QUEGAM.plots$diff.cov ~ QUEGAM.plots$class, outline = F,
-     ylim = c(min(QUEGAM.plots$diff.cov)-0.1,max(QUEGAM.plots$diff.cov)+0.1),
-     las = 1,
-     ylab = "difference in QUEGAM cover",
-     xlab = "")
-points(x = jitter(c(rep(1, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL"])),rep(2, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL MIXED CON"])),
-                    rep(3, length(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "MIXED CON"]))),0.25),
-       y = c(QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL"], QUEGAM.plots$diff.cov[QUEGAM.plots$class == "GAMBEL MIXED CON"],
-             QUEGAM.plots$diff.cov[QUEGAM.plots$class == "MIXED CON"]),
-       col = rgb(0,0,0, alpha = 0.5),
-       pch = 19)
-abline(h = 0, lty = 2)
-
-par(mfrow = c(2,2))
-summary.df$quegam25PA <- 0
-summary.df$quegam26PA <- 0
-
-summary.df$quegam25PA[match(comm.list[[1]]$plot[(which(comm.list[[1]]$code == "QUEGAM"))], summary.df$plot)] <- 1
-summary.df$quegam26PA[match(comm.list[[2]]$plot[(which(comm.list[[2]]$code == "QUEGAM"))], summary.df$plot)] <- 1
-
-t.test(summary.df$quegam26PA, summary.df$quegam25PA, paired = T) ## slight? decrease in QUEGAM abundance
-summary(glm(quegam26PA ~ trt*sev, data = summary.df, family = binomial(link = "logit"))) ## nothing
-
-m <- matrix(c(length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$trt == "con"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$trt == "con"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$trt == "fr"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$trt == "fr"])),
-            nrow = 2, ncol = 2, byrow = T)
-colnames(m) <- c("presence", "absence")
-rownames(m) <- c("control", "fire-retardant")
-mosaicplot(m, main = "2025 Gambel Oak Occurrence")
-
-m <- matrix(c(length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "unburn"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "unburn"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "low"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "low"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "mod"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "mod"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 1 & summary.df$sev == "high"]),
-              length(summary.df$quegam25PA[summary.df$quegam25PA == 0 & summary.df$sev == "high"])),
-            nrow = 4, ncol = 2, byrow = T)
-colnames(m) <- c("presence", "absence")
-rownames(m) <- c("unburn", "low", "moderate", "high")
-mosaicplot(m, main = "2025 Gambel Oak Occurrence")
-
-m <- matrix(c(length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$trt == "con"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$trt == "con"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$trt == "fr"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$trt == "fr"])),
-            nrow = 2, ncol = 2, byrow = T)
-colnames(m) <- c("presence", "absence")
-rownames(m) <- c("control", "fire-retardant")
-mosaicplot(m, main = "2026 Gambel Oak Occurrence")
-
-m <- matrix(c(length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "unburn"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "unburn"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "low"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "low"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "mod"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "mod"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 1 & summary.df$sev == "high"]),
-              length(summary.df$quegam26PA[summary.df$quegam26PA == 0 & summary.df$sev == "high"])),
-            nrow = 4, ncol = 2, byrow = T)
-colnames(m) <- c("presence", "absence")
-rownames(m) <- c("unburn", "low", "moderate", "high")
-mosaicplot(m, main = "2026 Gambel Oak Occurrence")
+rm(list = setdiff(ls(), c("comm.list", "summary.df", "sp.info.df","env", "sp.info")))
 
 
 #### Tree regeneration ####
@@ -1289,9 +1194,47 @@ count.sum <- regen %>%
     group_by(plot, code) %>% 
     summarise(quad.avg = plot.avg(count)) ## summarizing by transect then by plot
 count.sum <- as.data.frame(count.sum)
-count.sum$count_plot <- count.sum$quad.avg*1000 ## cm2 to m2 (0.1 m2 to 100m2 for plot)
-count.sum$count_ha <- count.sum$count_plot*100 ## (100m2 to 1 ha; 100m2 = 0.01 ha)
+count.sum$meter_avg <- count.sum$quad.avg*10 ## cm2 to m2 (0.1 m2 to 1m2)
 
+count.sum$plot[count.sum$meter_avg > 0];round(count.sum$meter_avg,0)[count.sum$meter_avg > 0]
+## seedlings per m2 on average
+
+nrow(env[env$class == "MIXED CON" | env$class == "GAMBEL MIXED CON",]) ## 41 plots with hopeful conifer regen
+
+(3/7)*100 ## number of LFR plots with yr 1 regen
+(4/55)*100 ## number of plots with yr 1 regen
+(4/41)*100 ## number of plots with potential conifer regen yr 1
+(1/7)*100 ## number of LC plots with yr 1 regen
+
+regen$code[is.na(regen$size)] <- NA
+regen$size[is.na(regen$size)] <- 0
+advanced.regen <- regen %>% 
+  group_by(plot, code) %>% 
+  summarise(number = sum(if_else(size > 0, 1,0))) ## summarizing by transect then by plot
+advanced.regen <- as.data.frame(advanced.regen)
+
+table(advanced.regen$code)
+(13/19)*100
+(2/19)*100
+(3/19)*100
+(1/19)*100
+
+(sum(advanced.regen$number[advanced.regen$code == "PSEMEN"], na.rm = T)/sum(advanced.regen$number,na.rm = T))*100
+(sum(advanced.regen$number[advanced.regen$code == "JUNOST"], na.rm = T)/sum(advanced.regen$number,na.rm = T))*100
+(sum(advanced.regen$number[advanced.regen$code == "PINPON"], na.rm = T)/sum(advanced.regen$number,na.rm = T))*100
+(sum(advanced.regen$number[advanced.regen$code == "ABICON"], na.rm = T)/sum(advanced.regen$number,na.rm = T))*100
+
+
+table(advanced.regen$plot[advanced.regen$number > 0])
+length(advanced.regen$plot[advanced.regen$number > 0]) ## 19 plots
+(19/55)*100 ## of all plots
+(19/41)*100 ## of conifer plots
+(19/28)*100 ## of unburned and low severity plots
+
+(2/7)*100 ## LC plots with advanced regen
+(3/7)*100 ## LFR plots with advanced regen
+(7/7)*100 ## UC with advanced regen
+(6/7)*100 ## UFR plots with advanced regen
 
 #### Ordinations ####
 str(env)
